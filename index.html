@@ -1,37 +1,89 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uz">
 <head>
   <meta charset="UTF-8">
-  <title>3D Surface Graph Drawer</title>
+  <title>3D Yuza Grafik Chizish</title>
+  <!-- Plotly.js CDN -->
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; }
-    label { display: block; margin-top: 8px; }
-    textarea { width: 100%; height: 80px; }
-    #plot { width: 100%; height: 500px; }
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: 20px auto;
+      line-height: 1.5;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: 600;
+    }
+    input {
+      margin-top: 4px;
+      margin-right: 5px;
+      padding: 4px 6px;
+      width: 100px;
+    }
+    #plot {
+      width: 100%;
+      height: 520px;
+      margin-top: 20px;
+      border: 1px solid #ccc;
+    }
+    #controls {
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #f9f9f9;
+    }
+    button {
+      margin-top: 15px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .row {
+      margin-bottom: 8px;
+    }
   </style>
 </head>
 <body>
 
-<h2>3D Surface Graph Drawer</h2>
+<h1>3D Yuza Grafik Chizish</h1>
 
-<p>For now this demo uses a formula K = f(T, n). You can change parameters and redraw the coloured surface.</p>
+<p>
+Uchala o‘q bo‘yicha masshtab va qiymatlarni pastdagi maydonlarga kiriting.
+Dastur K = f(T, n) funksiyasi uchun rangli 3D yuzani chizib beradi.
+</p>
 
-<label>Min / max of T (X‑axis):</label>
-<input id="tmin" type="number" value="5"> 
-<input id="tmax" type="number" value="25">
+<div id="controls">
+  <div class="row">
+    <label>T o‘qi (gorizontal), kH — minimal va maksimal qiymat:</label>
+    <input id="tmin" type="number" value="5" step="1"> dan
+    <input id="tmax" type="number" value="25" step="1"> gacha
+  </div>
 
-<label>Min / max of n (Y‑axis):</label>
-<input id="nmin" type="number" value="5"> 
-<input id="nmax" type="number" value="35">
+  <div class="row">
+    <label>n o‘qi (chuqurlik yo‘nalishi), rpm — minimal va maksimal qiymat:</label>
+    <input id="nmin" type="number" value="5" step="1"> dan
+    <input id="nmax" type="number" value="35" step="1"> gacha
+  </div>
 
-<br><br>
-<button id="drawBtn">Draw surface</button>
+  <div class="row">
+    <label>Punktlar soni (har bir o‘q bo‘yicha):</label>
+    <input id="steps" type="number" value="30" min="5" max="80">
+  </div>
+
+  <button id="drawBtn">Grafikni chizish</button>
+</div>
 
 <div id="plot"></div>
 
 <script>
-function generateSurface(tMin, tMax, nMin, nMax, steps=30) {
+function generateSurface(tMin, tMax, nMin, nMax, steps = 30) {
   const T = [];
   const N = [];
   const K = [];
@@ -39,12 +91,10 @@ function generateSurface(tMin, tMax, nMin, nMax, steps=30) {
   const dn = (nMax - nMin) / (steps - 1);
 
   for (let i = 0; i < steps; i++) {
-    const tVal = tMin + dt * i;
-    T.push(tVal);
+    T.push(tMin + dt * i);
   }
   for (let j = 0; j < steps; j++) {
-    const nVal = nMin + dn * j;
-    N.push(nVal);
+    N.push(nMin + dn * j);
   }
 
   for (let j = 0; j < steps; j++) {
@@ -52,8 +102,11 @@ function generateSurface(tMin, tMax, nMin, nMax, steps=30) {
     for (let i = 0; i < steps; i++) {
       const t = T[i];
       const n = N[j];
-      // Example formula: adjust to match real physics/model
+
+      // Shu yerda K = f(T, n) formulasini o'zingizga moslab o'zgartirishingiz mumkin.
+      // Hozircha namuna formula:
       const k = 0.5 + 0.02 * t + 0.01 * n + 0.0005 * t * n;
+
       row.push(k);
     }
     K.push(row);
@@ -66,15 +119,24 @@ function drawSurface() {
   const tMax = Number(document.getElementById('tmax').value);
   const nMin = Number(document.getElementById('nmin').value);
   const nMax = Number(document.getElementById('nmax').value);
+  let steps = Number(document.getElementById('steps').value);
 
-  const { T, N, K } = generateSurface(tMin, tMax, nMin, nMax);
+  if (isNaN(steps) || steps < 5) steps = 5;
+  if (steps > 80) steps = 80;
+
+  if (tMax <= tMin || nMax <= nMin) {
+    alert("Xatolik: maksimal qiymat minimal qiymatdan katta bo'lishi kerak.");
+    return;
+  }
+
+  const { T, N, K } = generateSurface(tMin, tMax, nMin, nMax, steps);
 
   const data = [{
     type: 'surface',
     x: T,
     y: N,
     z: K,
-    colorscale: 'Rainbow',  // colour matters – choose like 'Jet', 'Viridis', 'Rainbow', etc.
+    colorscale: 'Rainbow',
     showscale: true
   }];
 
@@ -93,7 +155,7 @@ function drawSurface() {
 
 document.getElementById('drawBtn').addEventListener('click', drawSurface);
 
-// initial draw
+// sahifa ochilganda avtomatik chizish
 drawSurface();
 </script>
 
