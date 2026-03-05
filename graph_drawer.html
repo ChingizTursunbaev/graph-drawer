@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>3D Surface Graph Drawer</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; }
+    label { display: block; margin-top: 8px; }
+    textarea { width: 100%; height: 80px; }
+    #plot { width: 100%; height: 500px; }
+  </style>
+</head>
+<body>
+
+<h2>3D Surface Graph Drawer</h2>
+
+<p>For now this demo uses a formula K = f(T, n). You can change parameters and redraw the coloured surface.</p>
+
+<label>Min / max of T (X‑axis):</label>
+<input id="tmin" type="number" value="5"> 
+<input id="tmax" type="number" value="25">
+
+<label>Min / max of n (Y‑axis):</label>
+<input id="nmin" type="number" value="5"> 
+<input id="nmax" type="number" value="35">
+
+<br><br>
+<button id="drawBtn">Draw surface</button>
+
+<div id="plot"></div>
+
+<script>
+function generateSurface(tMin, tMax, nMin, nMax, steps=30) {
+  const T = [];
+  const N = [];
+  const K = [];
+  const dt = (tMax - tMin) / (steps - 1);
+  const dn = (nMax - nMin) / (steps - 1);
+
+  for (let i = 0; i < steps; i++) {
+    const tVal = tMin + dt * i;
+    T.push(tVal);
+  }
+  for (let j = 0; j < steps; j++) {
+    const nVal = nMin + dn * j;
+    N.push(nVal);
+  }
+
+  for (let j = 0; j < steps; j++) {
+    const row = [];
+    for (let i = 0; i < steps; i++) {
+      const t = T[i];
+      const n = N[j];
+      // Example formula: adjust to match real physics/model
+      const k = 0.5 + 0.02 * t + 0.01 * n + 0.0005 * t * n;
+      row.push(k);
+    }
+    K.push(row);
+  }
+  return { T, N, K };
+}
+
+function drawSurface() {
+  const tMin = Number(document.getElementById('tmin').value);
+  const tMax = Number(document.getElementById('tmax').value);
+  const nMin = Number(document.getElementById('nmin').value);
+  const nMax = Number(document.getElementById('nmax').value);
+
+  const { T, N, K } = generateSurface(tMin, tMax, nMin, nMax);
+
+  const data = [{
+    type: 'surface',
+    x: T,
+    y: N,
+    z: K,
+    colorscale: 'Rainbow',  // colour matters – choose like 'Jet', 'Viridis', 'Rainbow', etc.
+    showscale: true
+  }];
+
+  const layout = {
+    scene: {
+      xaxis: { title: 'T, kH' },
+      yaxis: { title: 'n, rpm' },
+      zaxis: { title: 'K' },
+      aspectratio: { x: 1.2, y: 1.2, z: 0.7 }
+    },
+    margin: { l: 0, r: 0, b: 0, t: 0 }
+  };
+
+  Plotly.newPlot('plot', data, layout);
+}
+
+document.getElementById('drawBtn').addEventListener('click', drawSurface);
+
+// initial draw
+drawSurface();
+</script>
+
+</body>
+</html>
