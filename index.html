@@ -3,51 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <title>3D Yuza Grafik Chizish</title>
-  <!-- Plotly.js CDN -->
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 1000px;
-      margin: 20px auto;
-      line-height: 1.5;
-    }
-    h1, h2 {
-      text-align: center;
-    }
-    label {
-      display: block;
-      margin-top: 10px;
-      font-weight: 600;
-    }
-    input {
-      margin-top: 4px;
-      margin-right: 5px;
-      padding: 4px 6px;
-      width: 100px;
-    }
-    #plot {
-      width: 100%;
-      height: 520px;
-      margin-top: 20px;
-      border: 1px solid #ccc;
-    }
-    #controls {
-      margin-top: 10px;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      background: #f9f9f9;
-    }
-    button {
-      margin-top: 15px;
-      padding: 8px 16px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    .row {
-      margin-bottom: 8px;
-    }
+    body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; line-height: 1.5; }
+    h1 { text-align: center; }
+    label { display: block; margin-top: 10px; font-weight: 600; }
+    input, select { margin-top: 4px; margin-right: 5px; padding: 4px 6px; }
+    #plot { width: 100%; height: 520px; margin-top: 20px; border: 1px solid #ccc; }
+    #controls { margin-top: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9; }
+    button { margin-top: 15px; padding: 8px 16px; cursor: pointer; font-weight: 600; }
+    .row { margin-bottom: 8px; }
   </style>
 </head>
 <body>
@@ -55,23 +20,48 @@
 <h1>3D Yuza Grafik Chizish</h1>
 
 <p>
-Uchala o‘q bo‘yicha masshtab va qiymatlarni pastdagi maydonlarga kiriting.
-Dastur K = f(T, n) funksiyasi uchun rangli 3D yuzani chizib beradi.
+Uchala o‘q uchun masshtab, qiymatlar va birliklarni tanlang.
+Dastur ichkarida standart birliklarda hisoblaydi, grafikda esa siz tanlagan birliklar ko‘rinadi.
 </p>
 
 <div id="controls">
+  <!-- T o'qi -->
   <div class="row">
-    <label>T o‘qi (gorizontal), kH — minimal va maksimal qiymat:</label>
+    <label>T o‘qi (gorizontal) — interval va birlik:</label>
     <input id="tmin" type="number" value="5" step="1"> dan
     <input id="tmax" type="number" value="25" step="1"> gacha
+    <select id="tUnit">
+      <option value="kH">kH</option>
+      <option value="H">H</option>
+    </select>
+    <small>(Hisoblashda ichkarida kH ishlatiladi)</small>
   </div>
 
+  <!-- n o'qi -->
   <div class="row">
-    <label>n o‘qi (chuqurlik yo‘nalishi), rpm — minimal va maksimal qiymat:</label>
+    <label>n o‘qi (chuqurlik yo‘nalishi) — interval va birlik:</label>
     <input id="nmin" type="number" value="5" step="1"> dan
     <input id="nmax" type="number" value="35" step="1"> gacha
+    <select id="nUnit">
+      <option value="rpm">rpm</option>
+      <option value="krpm">krpm</option>
+    </select>
+    <small>(Hisoblashda ichkarida rpm ishlatiladi)</small>
   </div>
 
+  <!-- K birligi -->
+  <div class="row">
+    <label>K uchun birlik:</label>
+    <select id="kUnit">
+      <option value="g">gramm (g)</option>
+      <option value="mg">milligramm (mg)</option>
+      <option value="kg" selected>kilogramm (kg)</option>
+      <option value="t">tonna (t)</option>
+    </select>
+    <small>(Hisoblashda ichkarida kg ishlatiladi)</small>
+  </div>
+
+  <!-- qadamlar -->
   <div class="row">
     <label>Punktlar soni (har bir o‘q bo‘yicha):</label>
     <input id="steps" type="number" value="30" min="5" max="80">
@@ -83,58 +73,127 @@ Dastur K = f(T, n) funksiyasi uchun rangli 3D yuzani chizib beradi.
 <div id="plot"></div>
 
 <script>
-function generateSurface(tMin, tMax, nMin, nMax, steps = 30) {
-  const T = [];
-  const N = [];
+// --- Birliklarni standart birlikka o'tkazish funksiyalari ---
+
+// T -> kH
+function convertTToKH(value, unit) {
+  if (unit === 'kH') return value;
+  if (unit === 'H')  return value / 1000; // 1000 H = 1 kH (misol)
+  return value;
+}
+
+// n -> rpm
+function convertNToRPM(value, unit) {
+  if (unit === 'rpm')  return value;
+  if (unit === 'krpm') return value * 1000; // 1 krpm = 1000 rpm
+  return value;
+}
+
+// K -> kg (ichki hisob)
+function convertKToKG(value, unit) {
+  switch (unit) {
+    case 'mg': return value / 1_000_000;
+    case 'g' : return value / 1000;
+    case 'kg': return value;
+    case 't' : return value * 1000;
+    default :  return value;
+  }
+}
+
+// kg -> foydalanuvchi tanlagan birlik (chiqarish uchun)
+function convertKGToKOut(valueKg, unit) {
+  switch (unit) {
+    case 'mg': return valueKg * 1_000_000;
+    case 'g' : return valueKg * 1000;
+    case 'kg': return valueKg;
+    case 't' : return valueKg / 1000;
+    default :  return valueKg;
+  }
+}
+
+function generateSurface(tMinUser, tMaxUser, tUnit,
+                         nMinUser, nMaxUser, nUnit,
+                         steps, kUnit) {
+
+  const T_display = []; // grafikda ko'rsatiladigan T (tanlangan birlikda)
+  const N_display = []; // grafikda ko'rsatiladigan n (tanlangan birlikda)
   const K = [];
-  const dt = (tMax - tMin) / (steps - 1);
-  const dn = (nMax - nMin) / (steps - 1);
+
+  // Ichki hisoblash uchun konvert qilingan min/max
+  const tMinBase = convertTToKH(tMinUser, tUnit);
+  const tMaxBase = convertTToKH(tMaxUser, tUnit);
+  const nMinBase = convertNToRPM(nMinUser, nUnit);
+  const nMaxBase = convertNToRPM(nMaxUser, nUnit);
+
+  const dtBase = (tMaxBase - tMinBase) / (steps - 1);
+  const dnBase = (nMaxBase - nMinBase) / (steps - 1);
 
   for (let i = 0; i < steps; i++) {
-    T.push(tMin + dt * i);
+    // ichki kH bo'yicha qadam
+    const tBase = tMinBase + dtBase * i;
+    // foydalanuvchi birligiga qaytarib ko'rsatamiz
+    const tDisp = (tUnit === 'kH') ? tBase : tBase * 1000; // kH -> H
+    T_display.push(tDisp);
   }
+
   for (let j = 0; j < steps; j++) {
-    N.push(nMin + dn * j);
+    const nBase = nMinBase + dnBase * j;
+    const nDisp = (nUnit === 'rpm') ? nBase : nBase / 1000; // rpm -> krpm
+    N_display.push(nDisp);
   }
 
   for (let j = 0; j < steps; j++) {
     const row = [];
     for (let i = 0; i < steps; i++) {
-      const t = T[i];
-      const n = N[j];
+      const tBase = tMinBase + dtBase * i;   // kH
+      const nBase = nMinBase + dnBase * j;   // rpm
 
-      // Shu yerda K = f(T, n) formulasini o'zingizga moslab o'zgartirishingiz mumkin.
-      // Hozircha namuna formula:
-      const k = 0.5 + 0.02 * t + 0.01 * n + 0.0005 * t * n;
+      // Asosiy formula: K (kg) = f(T(kH), n(rpm))
+      let K_kg = 0.5 + 0.02 * tBase + 0.01 * nBase + 0.0005 * tBase * nBase;
 
-      row.push(k);
+      // Grafik uchun foydalanuvchi birligiga o'tkazamiz
+      const K_out = convertKGToKOut(K_kg, kUnit);
+      row.push(K_out);
     }
     K.push(row);
   }
-  return { T, N, K };
+
+  return { T_display, N_display, K };
 }
 
 function drawSurface() {
-  const tMin = Number(document.getElementById('tmin').value);
-  const tMax = Number(document.getElementById('tmax').value);
-  const nMin = Number(document.getElementById('nmin').value);
-  const nMax = Number(document.getElementById('nmax').value);
+  const tMinUser = Number(document.getElementById('tmin').value);
+  const tMaxUser = Number(document.getElementById('tmax').value);
+  const tUnit = document.getElementById('tUnit').value;
+
+  const nMinUser = Number(document.getElementById('nmin').value);
+  const nMaxUser = Number(document.getElementById('nmax').value);
+  const nUnit = document.getElementById('nUnit').value;
+
   let steps = Number(document.getElementById('steps').value);
+  const kUnit = document.getElementById('kUnit').value;
 
   if (isNaN(steps) || steps < 5) steps = 5;
   if (steps > 80) steps = 80;
 
-  if (tMax <= tMin || nMax <= nMin) {
-    alert("Xatolik: maksimal qiymat minimal qiymatdan katta bo'lishi kerak.");
+  if (tMaxUser <= tMinUser || nMaxUser <= nMinUser) {
+    alert("Xatolik: maksimal qiymat minimal qiymatdan katta bo‘lishi kerak.");
     return;
   }
 
-  const { T, N, K } = generateSurface(tMin, tMax, nMin, nMax, steps);
+  const { T_display, N_display, K } =
+    generateSurface(tMinUser, tMaxUser, tUnit,
+                    nMinUser, nMaxUser, nUnit,
+                    steps, kUnit);
+
+  const tAxisTitle = `T, ${tUnit}`;
+  const nAxisTitle = (nUnit === 'rpm') ? 'n, rpm' : 'n, krpm';
+  const kAxisTitle = `K, ${kUnit}`;
 
   const data = [{
     type: 'surface',
-    x: T,
-    y: N,
+    x: T_display,
+    y: N_display,
     z: K,
     colorscale: 'Rainbow',
     showscale: true
@@ -142,9 +201,9 @@ function drawSurface() {
 
   const layout = {
     scene: {
-      xaxis: { title: 'T, kH' },
-      yaxis: { title: 'n, rpm' },
-      zaxis: { title: 'K' },
+      xaxis: { title: tAxisTitle },
+      yaxis: { title: nAxisTitle },
+      zaxis: { title: kAxisTitle },
       aspectratio: { x: 1.2, y: 1.2, z: 0.7 }
     },
     margin: { l: 0, r: 0, b: 0, t: 0 }
@@ -154,8 +213,6 @@ function drawSurface() {
 }
 
 document.getElementById('drawBtn').addEventListener('click', drawSurface);
-
-// sahifa ochilganda avtomatik chizish
 drawSurface();
 </script>
 
