@@ -1,220 +1,334 @@
 <!DOCTYPE html>
 <html lang="uz">
 <head>
-  <meta charset="UTF-8">
-  <title>3D Yuza Grafik Chizish</title>
-  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; line-height: 1.5; }
-    h1 { text-align: center; }
-    label { display: block; margin-top: 10px; font-weight: 600; }
-    input, select { margin-top: 4px; margin-right: 5px; padding: 4px 6px; }
-    #plot { width: 100%; height: 520px; margin-top: 20px; border: 1px solid #ccc; }
-    #controls { margin-top: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9; }
-    button { margin-top: 15px; padding: 8px 16px; cursor: pointer; font-weight: 600; }
-    .row { margin-bottom: 8px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Sirt Grafigi — K = f(T, n)</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+  *{margin:0;padding:0;box-sizing:border-box}
+
+  :root{
+    --bg:#0e1117;
+    --panel:#161b22;
+    --border:#30363d;
+    --text:#c9d1d9;
+    --text-dim:#8b949e;
+    --accent:#58a6ff;
+    --accent2:#3fb950;
+    --input-bg:#0d1117;
+  }
+
+  body{
+    font-family:'Source Sans 3',sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    min-height:100vh;
+  }
+
+  header{
+    padding:16px 24px 0;
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+  }
+  header h1{
+    font-family:'JetBrains Mono',monospace;
+    font-size:18px;
+    font-weight:600;
+    color:var(--accent);
+    letter-spacing:-.3px;
+  }
+  header span{
+    font-size:13px;
+    color:var(--text-dim);
+  }
+
+  .controls{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    padding:14px 24px;
+    background:var(--panel);
+    border-bottom:1px solid var(--border);
+    align-items:end;
+  }
+
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+  }
+  .field label{
+    font-size:11px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:.6px;
+    color:var(--text-dim);
+    font-family:'JetBrains Mono',monospace;
+  }
+  .field input, .field select{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    padding:6px 10px;
+    border:1px solid var(--border);
+    border-radius:6px;
+    background:var(--input-bg);
+    color:var(--text);
+    outline:none;
+    width:100px;
+    transition:border-color .15s;
+  }
+  .field select{width:90px}
+  .field input:focus, .field select:focus{
+    border-color:var(--accent);
+  }
+
+  .sep{
+    width:1px;
+    height:36px;
+    background:var(--border);
+    align-self:end;
+    margin-bottom:2px;
+  }
+
+  button#draw{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    font-weight:600;
+    padding:7px 20px;
+    border:none;
+    border-radius:6px;
+    background:var(--accent);
+    color:#0e1117;
+    cursor:pointer;
+    letter-spacing:.3px;
+    transition:background .15s;
+  }
+  button#draw:hover{background:#79c0ff}
+
+  #plot{
+    width:100%;
+    height:calc(100vh - 120px);
+    min-height:500px;
+  }
+</style>
 </head>
 <body>
 
-<h1>3D Yuza Grafik Chizish</h1>
+<header>
+  <h1>K = f(T, n)</h1>
+  <span>3D sirt grafigi</span>
+</header>
 
-<p>
-Uchala o‘q uchun masshtab, qiymatlar va birliklarni tanlang.
-Dastur ichkarida standart birliklarda hisoblaydi, grafikda esa siz tanlagan birliklar ko‘rinadi.
-</p>
-
-<div id="controls">
-  <!-- T o'qi -->
-  <div class="row">
-    <label>T o‘qi (gorizontal) — interval va birlik:</label>
-    <input id="tmin" type="number" value="5" step="1"> dan
-    <input id="tmax" type="number" value="25" step="1"> gacha
+<div class="controls">
+  <!-- T -->
+  <div class="field">
+    <label>T min</label>
+    <input type="number" id="tMin" value="1" step="any">
+  </div>
+  <div class="field">
+    <label>T max</label>
+    <input type="number" id="tMax" value="25" step="any">
+  </div>
+  <div class="field">
+    <label>T birligi</label>
     <select id="tUnit">
-      <option value="kH">kH</option>
+      <option value="kH" selected>kH</option>
       <option value="H">H</option>
     </select>
-    <small>(Hisoblashda ichkarida kH ishlatiladi)</small>
   </div>
 
-  <!-- n o'qi -->
-  <div class="row">
-    <label>n o‘qi (chuqurlik yo‘nalishi) — interval va birlik:</label>
-    <input id="nmin" type="number" value="5" step="1"> dan
-    <input id="nmax" type="number" value="35" step="1"> gacha
+  <div class="sep"></div>
+
+  <!-- n -->
+  <div class="field">
+    <label>n min</label>
+    <input type="number" id="nMin" value="1" step="any">
+  </div>
+  <div class="field">
+    <label>n max</label>
+    <input type="number" id="nMax" value="30" step="any">
+  </div>
+  <div class="field">
+    <label>n birligi</label>
     <select id="nUnit">
-      <option value="rpm">rpm</option>
+      <option value="rpm" selected>rpm</option>
       <option value="krpm">krpm</option>
     </select>
-    <small>(Hisoblashda ichkarida rpm ishlatiladi)</small>
   </div>
 
-  <!-- K birligi -->
-  <div class="row">
-    <label>K uchun birlik:</label>
+  <div class="sep"></div>
+
+  <!-- K -->
+  <div class="field">
+    <label>K birligi</label>
     <select id="kUnit">
-      <option value="g">gramm (g)</option>
-      <option value="mg">milligramm (mg)</option>
-      <option value="kg" selected>kilogramm (kg)</option>
-      <option value="t">tonna (t)</option>
+      <option value="mg">mg</option>
+      <option value="g">g</option>
+      <option value="kg" selected>kg</option>
+      <option value="t">t</option>
     </select>
-    <small>(Hisoblashda ichkarida kg ishlatiladi)</small>
   </div>
 
-  <!-- qadamlar -->
-  <div class="row">
-    <label>Punktlar soni (har bir o‘q bo‘yicha):</label>
-    <input id="steps" type="number" value="30" min="5" max="80">
+  <div class="sep"></div>
+
+  <!-- Grid -->
+  <div class="field">
+    <label>Nuqtalar</label>
+    <input type="number" id="gridN" value="40" min="5" max="200" step="1">
   </div>
 
-  <button id="drawBtn">Grafikni chizish</button>
+  <button id="draw">Chizish</button>
 </div>
 
 <div id="plot"></div>
 
 <script>
-// --- Birliklarni standart birlikka o'tkazish funksiyalari ---
+/* ===== Birlik konvertatsiya ===== */
 
-// T -> kH
-function convertTToKH(value, unit) {
-  if (unit === 'kH') return value;
-  if (unit === 'H')  return value / 1000; // 1000 H = 1 kH (misol)
-  return value;
-}
-
-// n -> rpm
-function convertNToRPM(value, unit) {
-  if (unit === 'rpm')  return value;
-  if (unit === 'krpm') return value * 1000; // 1 krpm = 1000 rpm
-  return value;
-}
-
-// K -> kg (ichki hisob)
-function convertKToKG(value, unit) {
+// Foydalanuvchi birligidan bazaviy birlikka (T→kH, n→rpm, K→kg)
+function toBase(value, unit) {
   switch (unit) {
-    case 'mg': return value / 1_000_000;
-    case 'g' : return value / 1000;
-    case 'kg': return value;
-    case 't' : return value * 1000;
-    default :  return value;
+    case 'kH':   return value;           // already kH
+    case 'H':    return value / 1000;    // H → kH
+    case 'rpm':  return value;           // already rpm
+    case 'krpm': return value * 1000;    // krpm → rpm
+    case 'mg':   return value / 1e6;     // mg → kg
+    case 'g':    return value / 1000;    // g → kg
+    case 'kg':   return value;           // already kg
+    case 't':    return value * 1000;    // t → kg
+    default:     return value;
   }
 }
 
-// kg -> foydalanuvchi tanlagan birlik (chiqarish uchun)
-function convertKGToKOut(valueKg, unit) {
+// Bazaviy birlikdan foydalanuvchi birligiga
+function fromBase(value, unit) {
   switch (unit) {
-    case 'mg': return valueKg * 1_000_000;
-    case 'g' : return valueKg * 1000;
-    case 'kg': return valueKg;
-    case 't' : return valueKg / 1000;
-    default :  return valueKg;
+    case 'kH':   return value;
+    case 'H':    return value * 1000;
+    case 'rpm':  return value;
+    case 'krpm': return value / 1000;
+    case 'mg':   return value * 1e6;
+    case 'g':    return value * 1000;
+    case 'kg':   return value;
+    case 't':    return value / 1000;
+    default:     return value;
   }
 }
 
-function generateSurface(tMinUser, tMaxUser, tUnit,
-                         nMinUser, nMaxUser, nUnit,
-                         steps, kUnit) {
-
-  const T_display = []; // grafikda ko'rsatiladigan T (tanlangan birlikda)
-  const N_display = []; // grafikda ko'rsatiladigan n (tanlangan birlikda)
-  const K = [];
-
-  // Ichki hisoblash uchun konvert qilingan min/max
-  const tMinBase = convertTToKH(tMinUser, tUnit);
-  const tMaxBase = convertTToKH(tMaxUser, tUnit);
-  const nMinBase = convertNToRPM(nMinUser, nUnit);
-  const nMaxBase = convertNToRPM(nMaxUser, nUnit);
-
-  const dtBase = (tMaxBase - tMinBase) / (steps - 1);
-  const dnBase = (nMaxBase - nMinBase) / (steps - 1);
-
-  for (let i = 0; i < steps; i++) {
-    // ichki kH bo'yicha qadam
-    const tBase = tMinBase + dtBase * i;
-    // foydalanuvchi birligiga qaytarib ko'rsatamiz
-    const tDisp = (tUnit === 'kH') ? tBase : tBase * 1000; // kH -> H
-    T_display.push(tDisp);
-  }
-
-  for (let j = 0; j < steps; j++) {
-    const nBase = nMinBase + dnBase * j;
-    const nDisp = (nUnit === 'rpm') ? nBase : nBase / 1000; // rpm -> krpm
-    N_display.push(nDisp);
-  }
-
-  for (let j = 0; j < steps; j++) {
-    const row = [];
-    for (let i = 0; i < steps; i++) {
-      const tBase = tMinBase + dtBase * i;   // kH
-      const nBase = nMinBase + dnBase * j;   // rpm
-
-      // Asosiy formula: K (kg) = f(T(kH), n(rpm))
-      let K_kg = 0.5 + 0.02 * tBase + 0.01 * nBase + 0.0005 * tBase * nBase;
-
-      // Grafik uchun foydalanuvchi birligiga o'tkazamiz
-      const K_out = convertKGToKOut(K_kg, kUnit);
-      row.push(K_out);
-    }
-    K.push(row);
-  }
-
-  return { T_display, N_display, K };
+/* ===== Asosiy hisoblash funksiyasi =====
+   T bazaviy birlikda (kH), n bazaviy birlikda (rpm).
+   Natija kg da qaytariladi.
+   *** Shu funksiyani o'zingiz o'zgartiring *** */
+function computeK(T_kH, n_rpm) {
+  // Namuna: K = 0.04 * T^0.35 * n^0.25 + 0.5 * sin(T/5) * cos(n/8)
+  return 0.04 * Math.pow(T_kH, 0.35) * Math.pow(n_rpm, 0.25)
+       + 0.5 * Math.sin(T_kH / 5) * Math.cos(n_rpm / 8);
 }
 
-function drawSurface() {
-  const tMinUser = Number(document.getElementById('tmin').value);
-  const tMaxUser = Number(document.getElementById('tmax').value);
+/* ===== Grafikni chizish ===== */
+function render() {
   const tUnit = document.getElementById('tUnit').value;
-
-  const nMinUser = Number(document.getElementById('nmin').value);
-  const nMaxUser = Number(document.getElementById('nmax').value);
   const nUnit = document.getElementById('nUnit').value;
-
-  let steps = Number(document.getElementById('steps').value);
   const kUnit = document.getElementById('kUnit').value;
 
-  if (isNaN(steps) || steps < 5) steps = 5;
-  if (steps > 80) steps = 80;
+  const tMinUser = parseFloat(document.getElementById('tMin').value);
+  const tMaxUser = parseFloat(document.getElementById('tMax').value);
+  const nMinUser = parseFloat(document.getElementById('nMin').value);
+  const nMaxUser = parseFloat(document.getElementById('nMax').value);
+  const gridN   = parseInt(document.getElementById('gridN').value) || 40;
 
-  if (tMaxUser <= tMinUser || nMaxUser <= nMinUser) {
-    alert("Xatolik: maksimal qiymat minimal qiymatdan katta bo‘lishi kerak.");
-    return;
+  // Bazaviy birlikka o'tkazish
+  const tMinBase = toBase(tMinUser, tUnit);
+  const tMaxBase = toBase(tMaxUser, tUnit);
+  const nMinBase = toBase(nMinUser, nUnit);
+  const nMaxBase = toBase(nMaxUser, nUnit);
+
+  const tStep = (tMaxBase - tMinBase) / (gridN - 1);
+  const nStep = (nMaxBase - nMinBase) / (gridN - 1);
+
+  // Display qiymatlari uchun massivlar
+  const tDisplay = [];
+  const nDisplay = [];
+  const kDisplay = [];
+
+  for (let i = 0; i < gridN; i++) {
+    const T_base = tMinBase + i * tStep;
+    tDisplay.push(fromBase(T_base, tUnit));
   }
 
-  const { T_display, N_display, K } =
-    generateSurface(tMinUser, tMaxUser, tUnit,
-                    nMinUser, nMaxUser, nUnit,
-                    steps, kUnit);
+  for (let j = 0; j < gridN; j++) {
+    const n_base = nMinBase + j * nStep;
+    nDisplay.push(fromBase(n_base, nUnit));
+  }
 
-  const tAxisTitle = `T, ${tUnit}`;
-  const nAxisTitle = (nUnit === 'rpm') ? 'n, rpm' : 'n, krpm';
-  const kAxisTitle = `K, ${kUnit}`;
+  for (let j = 0; j < gridN; j++) {
+    const row = [];
+    const n_base = nMinBase + j * nStep;
+    for (let i = 0; i < gridN; i++) {
+      const T_base = tMinBase + i * tStep;
+      const K_base = computeK(T_base, n_base);
+      row.push(fromBase(K_base, kUnit));
+    }
+    kDisplay.push(row);
+  }
 
-  const data = [{
+  const trace = {
+    x: tDisplay,
+    y: nDisplay,
+    z: kDisplay,
     type: 'surface',
-    x: T_display,
-    y: N_display,
-    z: K,
     colorscale: 'Rainbow',
-    showscale: true
-  }];
-
-  const layout = {
-    scene: {
-      xaxis: { title: tAxisTitle },
-      yaxis: { title: nAxisTitle },
-      zaxis: { title: kAxisTitle },
-      aspectratio: { x: 1.2, y: 1.2, z: 0.7 }
+    colorbar: {
+      title: { text: 'K, ' + kUnit, font: { family: 'JetBrains Mono', size: 12, color: '#c9d1d9' } },
+      tickfont: { family: 'JetBrains Mono', size: 10, color: '#8b949e' },
+      outlinewidth: 0,
+      bgcolor: 'rgba(0,0,0,0)',
     },
-    margin: { l: 0, r: 0, b: 0, t: 0 }
+    contours: {
+      z: { show: true, usecolormap: true, highlightcolor: '#fff', project: { z: false } }
+    },
+    lighting: { ambient: 0.6, diffuse: 0.7, specular: 0.3, roughness: 0.5 },
   };
 
-  Plotly.newPlot('plot', data, layout);
+  const layout = {
+    paper_bgcolor: '#0e1117',
+    font: { family: 'JetBrains Mono', color: '#c9d1d9' },
+    margin: { l: 10, r: 10, t: 10, b: 10 },
+    scene: {
+      xaxis: {
+        title: { text: 'T, ' + tUnit, font: { size: 13 } },
+        gridcolor: '#30363d',
+        zerolinecolor: '#484f58',
+        tickfont: { size: 10, color: '#8b949e' },
+        backgroundcolor: '#161b22',
+      },
+      yaxis: {
+        title: { text: 'n, ' + nUnit, font: { size: 13 } },
+        gridcolor: '#30363d',
+        zerolinecolor: '#484f58',
+        tickfont: { size: 10, color: '#8b949e' },
+        backgroundcolor: '#161b22',
+      },
+      zaxis: {
+        title: { text: 'K, ' + kUnit, font: { size: 13 } },
+        gridcolor: '#30363d',
+        zerolinecolor: '#484f58',
+        tickfont: { size: 10, color: '#8b949e' },
+        backgroundcolor: '#161b22',
+      },
+      camera: { eye: { x: 1.6, y: -1.8, z: 0.9 } },
+    },
+  };
+
+  Plotly.react('plot', [trace], layout, { responsive: true });
 }
 
-document.getElementById('drawBtn').addEventListener('click', drawSurface);
-drawSurface();
+document.getElementById('draw').addEventListener('click', render);
+window.addEventListener('load', render);
 </script>
-
 </body>
 </html>
